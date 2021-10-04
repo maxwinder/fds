@@ -9,6 +9,7 @@ from nltk.stem.porter import *
 from functools import reduce
 from collections import Counter
 import matplotlib.pyplot as plt
+from gensim.models import CoherenceModel
 np.random.seed(2018)
 
 stemmer = SnowballStemmer(language='english')
@@ -58,7 +59,7 @@ tfidf = gensim.models.TfidfModel(bow_corpus)
 corpus_tfidf = tfidf[bow_corpus]
 
 #training model
-lda_model_tfidf = gensim.models.LdaMulticore(corpus_tfidf, num_topics=6, id2word=dictionary, passes=2, workers=4)  #tf-idf
+lda_model_tfidf = gensim.models.LdaMulticore(corpus_tfidf, num_topics=5, id2word=dictionary, passes=2, workers=4)  #tf-idf
 
 for idx, topic in lda_model_tfidf.print_topics(-1):
     print('Topic: {} Word: {}'.format(idx, topic))
@@ -73,7 +74,7 @@ corpus_tfidf_test = tfidf_test[bow_corpus_test]
 bound = 0.1  # at least this score on topic for a save
 topics = []
 for i in corpus_tfidf_test:
-    #sorted(lda_model_tfidf[i], key=lambda tup: -1*tup[1])
+    sorted(lda_model_tfidf[i], key=lambda tup: -1*tup[1])
     topics.append([j[0] for j in sorted(lda_model_tfidf[i], key=lambda tup: -1*tup[1]) if j[1]> bound])  
 
 
@@ -85,12 +86,8 @@ Counter(reduce(lambda a,b : a+b, test.Topics))
 Counter(reduce(lambda a,b : a+b, test[test['Developed / Developing Countries'] == 'Developed'].Topics))
 Counter(reduce(lambda a,b : a+b, test[test['Developed / Developing Countries'] == 'Developing'].Topics))
 
-lda_model_tfidf.print_topic(0, 20)
-lda_model_tfidf.print_topic(1, 20)
-lda_model_tfidf.print_topic(2, 20)
+[lda_model_tfidf.print_topic(i, 20) for i in range(5)]
 lda_model_tfidf.print_topic(3, 20)
-lda_model_tfidf.print_topic(4, 20)
-lda_model_tfidf.print_topic(5, 20)
 
 thing = Counter(reduce(lambda a,b : a+b, test[test['Developed / Developing Countries'] == 'Developed'].Topics))
 
@@ -119,3 +116,9 @@ ax.set_xticks(x)
 ax.set_xticklabels(labels)
 fig.tight_layout()
 plt.show()
+
+
+# testing coherence
+coherence_model_lda = CoherenceModel(model=lda_model_tfidf, texts=processed_docs, dictionary=dictionary, coherence='c_v')
+coherence_lda = coherence_model_lda.get_coherence()
+print('\nCoherence Score: ', coherence_lda)
